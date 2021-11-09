@@ -17,6 +17,8 @@ public interface DemoActor {
 
   void registerReminder();
 
+  void unregisterReminder();
+
   @ActorMethod(name = "echo_message")
   String say(String something);
 

@@ -23,7 +23,7 @@ import java.util.List;
  */
 public class DemoActorClient {
 
-  private static final int NUM_ACTORS = 3;
+  private static int NUM_ACTORS = 3;
 
   /**
    * The main method.
@@ -31,6 +31,10 @@ public class DemoActorClient {
    * @throws InterruptedException If program has been interrupted.
    */
   public static void main(String[] args) throws InterruptedException {
+    if (args.length == 1) {
+      NUM_ACTORS = Integer.parseInt(args[0]);
+    }
+
     try (ActorClient client = new ActorClient()) {
       ActorProxyBuilder<DemoActor> builder = new ActorProxyBuilder(DemoActor.class, client);
       List<Thread> threads = new ArrayList<>(NUM_ACTORS);
@@ -39,48 +43,13 @@ public class DemoActorClient {
       for (int i = 0; i < NUM_ACTORS; i++) {
         ActorId actorId = ActorId.createRandom();
         DemoActor actor = builder.build(actorId);
-
-        // Start a thread per actor.
-        Thread thread = new Thread(() -> callActorForever(actorId.toString(), actor));
-        thread.start();
-        threads.add(thread);
+        long nanos = System.nanoTime();
+        actor.registerReminder();
+        System.out.println("Actor registered");
+        System.out.println(System.nanoTime() - nanos);
       }
 
-      // Waits for threads to finish.
-      for (Thread thread : threads) {
-        thread.join();
-      }
-    }
-
-    System.out.println("Done.");
-  }
-
-  /**
-   * Makes multiple method calls into actor until interrupted.
-   * @param actorId Actor's identifier.
-   * @param actor Actor to be invoked.
-   */
-  private static final void callActorForever(String actorId, DemoActor actor) {
-    // First, register reminder.
-    actor.registerReminder();
-
-    // Now, we run until thread is interrupted.
-    while (!Thread.currentThread().isInterrupted()) {
-      // Invoke actor method to increment counter by 1, then build message.
-      int messageNumber = actor.incrementAndGet(1).block();
-      String message = String.format("Actor %s said message #%d", actorId, messageNumber);
-
-      // Invoke the 'say' method in actor.
-      String result = actor.say(message);
-      System.out.println(String.format("Actor %s got a reply: %s", actorId, result));
-
-      try {
-        // Waits for up to 1 second.
-        Thread.sleep((long) (1000 * Math.random()));
-      } catch (InterruptedException e) {
-        // We have been interrupted, so we set the interrupted flag to exit gracefully.
-        Thread.currentThread().interrupt();
-      }
+      System.out.println("Done.");
     }
   }
 }

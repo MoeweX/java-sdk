@@ -29,19 +29,12 @@ public class DemoActorImpl extends AbstractActor implements DemoActor, Remindabl
   private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
   /**
-   * This is the constructor of an actor implementation, while also registering a timer.
+   * This is the constructor of an actor implementation
    * @param runtimeContext The runtime context object which contains objects such as the state provider.
    * @param id             The id of this actor.
    */
   public DemoActorImpl(ActorRuntimeContext runtimeContext, ActorId id) {
     super(runtimeContext, id);
-
-    super.registerActorTimer(
-        null,
-        "clock",
-        "ping!",
-        Duration.ofSeconds(2),
-        Duration.ofSeconds(1)).block();
   }
 
   /**
@@ -54,6 +47,17 @@ public class DemoActorImpl extends AbstractActor implements DemoActor, Remindabl
         (int) (Integer.MAX_VALUE * Math.random()),
         Duration.ofSeconds(5),
         Duration.ofSeconds(2)).block();
+
+    System.out.println("Registered reminder");
+  }
+
+  /**
+   * Unregisters a reminder.
+   */
+  @Override
+  public void unregisterReminder() {
+    super.unregisterReminder("myremind");
+    System.out.println("Unregistered reminder");
   }
 
   /**
@@ -145,6 +149,8 @@ public class DemoActorImpl extends AbstractActor implements DemoActor, Remindabl
 
       // Handles the request by printing message.
       System.out.println(message);
+
+      unregisterReminder();
     });
   }
 }
