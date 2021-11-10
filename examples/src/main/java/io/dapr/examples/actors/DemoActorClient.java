@@ -56,7 +56,7 @@ public class DemoActorClient {
 
       writer.write(actorId + ";" + time + "\n");
 
-      // Creates first batch of actors.
+      // Creates actors
       for (int i = 1; i < NUM_ACTORS; i++) {
         nanos = System.nanoTime();
         actorId = new ActorId("Actor-" + i);

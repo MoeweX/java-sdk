@@ -105,7 +105,7 @@ DemoActorClient log:
 == APP == Done.
 ```
 
-Repeated the experiment (exp2a = bfd1ae39) later with 5000 actors and a 10 second brake after 2500 actors to study if this has any effect on latency **Stopping does not change anything**
+Repeated the experiment (exp2a = bfd1ae39) later with 5000 actors and a 10 second brake after 2500 actors to study if this has any effect on latency **Stopping does not change the latency, but CPU load almost zero during brake**
 
 ![Exp2a](./exp2a.png)
 
@@ -153,6 +153,7 @@ If partitioning helps for writes, this means:
 Motivation: Find out whether two partitions infleunces reminder creation latency
 
 Setup:
+- Activated experimental metadata feature for this experiment, the others were without this feature
 - Start 5000 actors in a loop
 - Each actor registers a reminder on startup that will trigger in 5000 seconds
 - Actor deactivation timeout is 5000 seconds
@@ -700,13 +701,33 @@ DemoActorClient log:
 == APP == Done.
 ```
 
-## Final results
+## Finding update
 
 - Actors that do not have reminders do not slow us down
 - Reminder creation is slowed down by having many reminders, even if they are waiting O(n). Having more partitions slightly helps.
-- Having more partitions increases number of errors when adding reminders, but all seem to be added anyways
+- Having more partitions increases number of distributed tracing errors when adding many reminders
 - Reminder execution is not slowed down by having many reminders (at least if they are waiting)
 
 Questions:
-- Are reminder POSTs resent on failure? Seems so since all in redis.
-- Why does having more partitions increase errors?
+- Why does having more partitions hamper distributed tracing?
+
+## Registration scalability with MANY partitions (exp5)
+
+- Git-commit: 
+
+Motivation: Find out if increasing partitions eventually increases latency?
+
+Setup:
+- Setup as in exp4
+- Use 100 reminder partitions
+
+Results:
+
+- Only small improvement to exp4
+- Many more distributed tracing errors, also with DemoActorService 
+
+![Exp5](./exp5.png)
+
+### exp5a
+
+- 50 reminder partitions
