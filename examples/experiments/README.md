@@ -103,7 +103,7 @@ DemoActorClient log:
 
 ## Reminder scalability for deactivated actors that have reminders (exp3)
 
-- Git-commit: XXX
+- Git-commit: 21974a72
 
 Motivation: Check how the total number of reminders affects the scheduling of a single reminder. In other words: while I am adding more and more actors with reminders (which are not triggered), does a single reminder that is continiously triggered being slowed down?
 
@@ -116,7 +116,7 @@ Setup:
 
 Results:
 
-- Redis has a key for all reminders, values comprises a list with 10000 elements (none are missing)
+- Redis has a key for all reminders, values comprises a list with 5000 elements (none are missing)
 - Redis has a fields for lastWakeup; version after run is 298
 - Latency behaves similar to exp2
 
@@ -125,3 +125,15 @@ Results:
 - Total number of reminders does not affect the scheduling of a single reminder
 
 ![Exp1](./exp3-ri.png)
+
+## Findings so far
+
+- Actors that do not have reminders do not slow us down
+- Each actor with a reminder makes it more expensive to add new actors. Possible reasons
+    - Caused by all reminders in same database key -> using partitioning would fix this
+    - Caused by Dapr overloaded -> small brake while adding in exp2 would fix this
+- Number of (waiting) reminders in database does not impact reminder execution
+
+If partitioning helps for writes, this means:
+- Reminder execution is not slowed down by having many reminders (at least if they are waiting)
+- Reminder creation is slowed down by having many reminders, even if they are wating
