@@ -105,7 +105,7 @@ DemoActorClient log:
 == APP == Done.
 ```
 
-Repeated the experiment (exp2a = 21974a72) later with 5000 actors and a 10 second brake after 2500 actors to study if this has any effect on latency **Stopping does not change anything**
+Repeated the experiment (exp2a = bfd1ae39) later with 5000 actors and a 10 second brake after 2500 actors to study if this has any effect on latency **Stopping does not change anything**
 
 ![Exp2a](./exp2a.png)
 
@@ -148,7 +148,7 @@ If partitioning helps for writes, this means:
 
 ## Registration scalability with partitions (exp4)
 
-- Git-commit: c934bc86
+- Git-commit: 7b8acff6
 
 Motivation: Find out whether two partitions infleunces reminder creation latency
 
