@@ -57,22 +57,7 @@ public class DemoActorClient {
       writer.write(actorId + ";" + time + "\n");
 
       // Creates first batch of actors.
-      for (int i = 1; i < NUM_ACTORS / 2; i++) {
-        nanos = System.nanoTime();
-        actorId = new ActorId("Actor-" + i);
-        actor = builder.build(actorId);
-        actor.doSomething();
-        actor.registerReminder(5000);
-        time = System.nanoTime() - nanos;
-
-        writer.write(actorId + ";" + time + "\n");
-      }
-
-      System.out.println("Sleeping for 10 seconds");
-      Thread.sleep(10000);
-
-      // Creates second batch of actors.
-      for (int i = NUM_ACTORS / 2; i < NUM_ACTORS; i++) {
+      for (int i = 1; i < NUM_ACTORS; i++) {
         nanos = System.nanoTime();
         actorId = new ActorId("Actor-" + i);
         actor = builder.build(actorId);

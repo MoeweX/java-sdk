@@ -1,5 +1,8 @@
 # Experiment Overview
 
+With this experiment we want to identify whether having many reminders slows down reminder creation/execution, and what measures helps to reduce negative effects.
+We do not benchmark how many actors can be actively processing / being reminded at the same time; this would be pointless as this just benchmarks this computer for this purpose.
+
 ## Actor scalability (exp1)
 
 - Git commit: c934bc86 (addReminder must be commented)
@@ -34,6 +37,7 @@ Result:
 
 - Redis has a key for all reminders, values comprises a list with 10000 elements (none are missing)
 - Program does not stop properly -> no print-out at the end
+- CPU load is high on DemoActorService, the client has a low load
 - O(n)
 
 ![Exp2](./exp2.png)
@@ -101,7 +105,7 @@ DemoActorClient log:
 == APP == Done.
 ```
 
-Repeated the experiment (exp2a) later with 5000 actors and a 10 second brake after 2500 actors to study if this has any effect on latency **Stopping does not change anything**
+Repeated the experiment (exp2a = 21974a72) later with 5000 actors and a 10 second brake after 2500 actors to study if this has any effect on latency **Stopping does not change anything**
 
 ![Exp2a](./exp2a.png)
 
@@ -140,4 +144,569 @@ Results:
 
 If partitioning helps for writes, this means:
 - Reminder execution is not slowed down by having many reminders (at least if they are waiting)
-- Reminder creation is slowed down by having many reminders, even if they are wating
+- Reminder creation is slowed down by having many reminders, even if they are waiting
+
+## Registration scalability with partitions (exp4)
+
+- Git-commit: c934bc86
+
+Motivation: Find out whether two partitions infleunces reminder creation latency
+
+Setup:
+- Start 5000 actors in a loop
+- Each actor registers a reminder on startup that will trigger in 5000 seconds
+- Actor deactivation timeout is 5000 seconds
+- Use 2 reminder partitions
+
+Results:
+- Redis has two keys for reminders (both have 2500 reminders, none are missing) and a meta data key (that got updated 5002 times)
+- Reminder creation is slightly faster but partitoins seems not to be very effective for speeding things up
+
+![Exp4](./exp4.png)
+
+- There were a lot of errors:
+
+DemoActorClient log:
+```bash
+== APP == Starting Actors.
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:22 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": dial tcp [::1]:9411: connect: connection refused
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:55749->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:55757->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:55759->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:23 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:55847->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:55898->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:55904->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:24 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:55978->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56030->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56106->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56110->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:25 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56146->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56202->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56206->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56212->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56228->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:26 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56268->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56274->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56288->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56321->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56337->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56347->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:27 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56518->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:28 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56564->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56574->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56612->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": read tcp [::1]:56632->[::1]:9411: read: connection reset by peer
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+2021/11/10 15:09:29 failed to send the request: Post "http://localhost:9411/api/v2/spans": EOF
+== APP == Done.
+```
+
+## Final results
+
+- Actors that do not have reminders do not slow us down
+- Reminder creation is slowed down by having many reminders, even if they are waiting O(n). Having more partitions slightly helps.
+- Having more partitions increases number of errors when adding reminders, but all seem to be added anyways
+- Reminder execution is not slowed down by having many reminders (at least if they are waiting)
+
+Questions:
+- Are reminder POSTs resent on failure? Seems so since all in redis.
+- Why does having more partitions increase errors?

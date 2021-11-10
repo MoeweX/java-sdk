@@ -48,6 +48,8 @@ public class DemoActorService {
     ActorRuntime.getInstance().getConfig().setDrainOngoingCallTimeout(Duration.ofSeconds(10));
     // Determines whether to drain API calls for actors instances being balanced.
     ActorRuntime.getInstance().getConfig().setDrainBalancedActors(true);
+    // Set number of reminder partitions
+    ActorRuntime.getInstance().getConfig().setRemindersStoragePartitions(2);
 
     // Register the Actor class.
     ActorRuntime.getInstance().registerActor(DemoActorImpl.class);
