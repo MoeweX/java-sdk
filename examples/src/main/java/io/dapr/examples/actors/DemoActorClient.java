@@ -9,6 +9,9 @@ import io.dapr.actors.ActorId;
 import io.dapr.actors.client.ActorClient;
 import io.dapr.actors.client.ActorProxyBuilder;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,25 +33,32 @@ public class DemoActorClient {
    * @param args Input arguments (unused).
    * @throws InterruptedException If program has been interrupted.
    */
-  public static void main(String[] args) throws InterruptedException {
+  public static void main(String[] args) throws InterruptedException, IOException {
     if (args.length == 1) {
       NUM_ACTORS = Integer.parseInt(args[0]);
     }
 
     try (ActorClient client = new ActorClient()) {
       ActorProxyBuilder<DemoActor> builder = new ActorProxyBuilder(DemoActor.class, client);
-      List<Thread> threads = new ArrayList<>(NUM_ACTORS);
+      FileWriter writer = new FileWriter("./experiment-latency.csv");
+      writer.write("actorId;timeNs\n");
+
+      System.out.println("Starting Actors.");
 
       // Creates multiple actors.
       for (int i = 0; i < NUM_ACTORS; i++) {
-        ActorId actorId = ActorId.createRandom();
-        DemoActor actor = builder.build(actorId);
         long nanos = System.nanoTime();
+        ActorId actorId = new ActorId("Actor-" + i);
+        DemoActor actor = builder.build(actorId);
+        actor.doSomething();
         actor.registerReminder();
-        System.out.println("Actor registered");
-        System.out.println(System.nanoTime() - nanos);
+        long time = System.nanoTime() - nanos;
+
+        writer.write(actorId + ";" + time + "\n");
       }
 
+      writer.flush();
+      writer.close();
       System.out.println("Done.");
     }
   }

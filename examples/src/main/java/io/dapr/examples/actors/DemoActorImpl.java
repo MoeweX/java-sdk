@@ -45,8 +45,8 @@ public class DemoActorImpl extends AbstractActor implements DemoActor, Remindabl
     super.registerReminder(
         "myremind",
         (int) (Integer.MAX_VALUE * Math.random()),
-        Duration.ofSeconds(5),
-        Duration.ofSeconds(2)).block();
+        Duration.ofSeconds(5000),
+        Duration.ofSeconds(60)).block();
 
     System.out.println("Registered reminder");
   }
@@ -56,8 +56,13 @@ public class DemoActorImpl extends AbstractActor implements DemoActor, Remindabl
    */
   @Override
   public void unregisterReminder() {
-    super.unregisterReminder("myremind");
     System.out.println("Unregistered reminder");
+    super.unregisterReminder("myremind");
+  }
+
+  @Override
+  public void doSomething() {
+    //pass, just needed to activate
   }
 
   /**
