@@ -12,10 +12,13 @@ import io.dapr.actors.runtime.Remindable;
 import io.dapr.utils.TypeRef;
 import reactor.core.publisher.Mono;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.Calendar;
+import java.util.Optional;
 import java.util.TimeZone;
 
 /**
@@ -41,12 +44,12 @@ public class DemoActorImpl extends AbstractActor implements DemoActor, Remindabl
    * Registers a reminder.
    */
   @Override
-  public void registerReminder() {
+  public void registerReminder(long dueTimeInS) {
     super.registerReminder(
         "myremind",
         (int) (Integer.MAX_VALUE * Math.random()),
-        Duration.ofSeconds(5000),
-        Duration.ofSeconds(60)).block();
+        Duration.ofSeconds(dueTimeInS),
+        Duration.ofSeconds(dueTimeInS)).block();
 
     System.out.println("Registered reminder");
   }
@@ -146,16 +149,20 @@ public class DemoActorImpl extends AbstractActor implements DemoActor, Remindabl
   @Override
   public Mono<Void> receiveReminder(String reminderName, Integer state, Duration dueTime, Duration period) {
     return Mono.fromRunnable(() -> {
-      Calendar utcNow = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-      String utcNowAsString = DATE_FORMAT.format(utcNow.getTime());
-
-      String message = String.format("Server reminded actor %s of: %s for %d @ %s",
-          this.getId(), reminderName, state, utcNowAsString);
-
-      // Handles the request by printing message.
-      System.out.println(message);
-
-      unregisterReminder();
+      try {
+        FileWriter fw = new FileWriter("experiment-actor-interval.csv", true);
+        Optional<Long> lastWakeup = super.getActorStateManager().get("lastWakeup", TypeRef.LONG).blockOptional();
+        if (lastWakeup.isPresent()) {
+          long time = System.nanoTime() - lastWakeup.get();
+          System.out.println("Time passed: " + time/1000/1000 + "ms");
+          fw.write(time + "\n");
+          fw.flush();
+          fw.close();
+        }
+        super.getActorStateManager().set("lastWakeup", System.nanoTime()).block();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     });
   }
 }

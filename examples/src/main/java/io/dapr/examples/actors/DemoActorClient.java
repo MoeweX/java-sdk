@@ -12,6 +12,7 @@ import io.dapr.actors.client.ActorProxyBuilder;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,14 +46,24 @@ public class DemoActorClient {
 
       System.out.println("Starting Actors.");
 
+      // create single actor that is continioulsy doing something
+      long nanos = System.nanoTime();
+      ActorId actorId = new ActorId("Actor-0");
+      DemoActor actor = builder.build(actorId);
+      actor.doSomething();
+      actor.registerReminder(1);
+      long time = System.nanoTime() - nanos;
+
+      writer.write(actorId + ";" + time + "\n");
+
       // Creates multiple actors.
-      for (int i = 0; i < NUM_ACTORS; i++) {
-        long nanos = System.nanoTime();
-        ActorId actorId = new ActorId("Actor-" + i);
-        DemoActor actor = builder.build(actorId);
+      for (int i = 1; i < NUM_ACTORS; i++) {
+        nanos = System.nanoTime();
+        actorId = new ActorId("Actor-" + i);
+        actor = builder.build(actorId);
         actor.doSomething();
-        actor.registerReminder();
-        long time = System.nanoTime() - nanos;
+        actor.registerReminder(5000);
+        time = System.nanoTime() - nanos;
 
         writer.write(actorId + ";" + time + "\n");
       }

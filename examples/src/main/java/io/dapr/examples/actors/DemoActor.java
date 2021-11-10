@@ -9,13 +9,15 @@ import io.dapr.actors.ActorMethod;
 import io.dapr.actors.ActorType;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+
 /**
  * Example of implementation of an Actor.
  */
 @ActorType(name = "DemoActor")
 public interface DemoActor {
 
-  void registerReminder();
+  void registerReminder(long dueTimeInS);
 
   void unregisterReminder();
 
