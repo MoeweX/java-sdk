@@ -1,6 +1,6 @@
 # Experiment Overview
 
-With this experiment we want to identify whether having many reminders slows down reminder creation/execution, and what measures helps to reduce negative effects.
+With this experiment we want to identify whether having many reminders slows down reminder creation/execution, and how partitoining helps to reduce negative effects.
 We do not benchmark how many actors can be actively processing / being reminded at the same time; this would be pointless as this just benchmarks this computer for this purpose.
 
 ## Actor scalability (exp1)
@@ -150,7 +150,7 @@ If partitioning helps for writes, this means:
 
 - Git-commit: 7b8acff6
 
-Motivation: Find out whether two partitions infleunces reminder creation latency
+Motivation: Find out whether two partitions infleunces reminder creation latency (quite similar to exp2a)
 
 Setup:
 - Activated experimental metadata feature for this experiment, the others were without this feature
@@ -710,10 +710,11 @@ DemoActorClient log:
 
 Questions:
 - Why does having more partitions hamper distributed tracing?
+- Does having many partitions eventually slow things down?
 
 ## Registration scalability with MANY partitions (exp5)
 
-- Git-commit: 
+- Git-commit: 643e41a3
 
 Motivation: Find out if increasing partitions eventually increases latency?
 
@@ -728,6 +729,40 @@ Results:
 
 ![Exp5](./exp5.png)
 
-### exp5a
+### exp5a ()
 
+Setup:
+- Setup similar to exp5
 - 50 reminder partitions
+
+Results:
+
+- Faster than 100
+- Surprisingly no distributing tracing errors
+
+![Exp5a](./exp5a.png)
+
+## Finding update
+
+All findings valid for self-hosted, redis, single dapr-runtime.
+- Actors that do not have reminders do not slow us down
+- Reminder creation is slowed down by having many reminders, even if they are waiting O(n). Having more partitions slightly helps, having to many slows down again.
+- Having more partitions increases number of distributed tracing errors when adding many reminders
+- Reminder execution is not slowed down by having many reminders (at least if they are waiting)
+
+Questions:
+- Why does having more partitions hamper distributed tracing?
+- If I have a second Actor runtime:
+    - Do actors get started twice? Round robin? What abound different configs?
+    - How does this influence latency?
+
+One partition 40.079026211
+Two partition 31.922621598800003
+50 partition 23.014745866999995
+100 partition 29.3740438368
+
+### Experiment 6
+
+- Git-commit
+
+Motivation: Check how two partitions handles two app runtimes.
