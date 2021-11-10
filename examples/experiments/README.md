@@ -761,8 +761,52 @@ Two partition 31.922621598800003
 50 partition 23.014745866999995
 100 partition 29.3740438368
 
-### Experiment 6
+## Two Actor Runtimes (exp6)
 
-- Git-commit
+- Git-commit: Java same to exp5a, but we changed partitions
 
 Motivation: Check how two partitions handles two app runtimes.
+
+Setup:
+- Same as exp4 (2 partitions)
+
+Results:
+- CPU similar for both daprd, lower than single app runtime exp
+- Actors are only started once, equally distributed accross runtimes
+- Latency is worse than with only one runtime!
+
+Two partition, one runtimes 31.922621598800003
+Two partition, two runtimes 35.1639403142
+
+![Exp6](./exp6.png)
+
+
+### exp6a
+
+Setup:
+- 50 partitions
+
+Results:
+- Latency is worse than with only one runtime!
+
+50 partition, one runtimes 23.014745866999995
+50 partition, two runtimes 27.8189170512
+
+![Exp6a](./exp6a.png)
+
+### exp6b
+
+Repeat of 6a
+
+50 partition, two runtimes 27.8189170512
+50 partition, two runtimes 26.7766634724
+
+Very similar to 6a.
+
+## Finding update
+
+All findings valid for self-hosted, redis. Based on one and two app runtimes.
+- Actors that do not have reminders do not slow us down
+- Reminder creation is slowed down by having many reminders, even if they are waiting O(n). Having more partitions slightly helps, having to many slows down again. Having more app runtimes slows down again (constant for number of partitions at two runtimes).
+- Having more partitions increases number of distributed tracing errors when adding many reminders
+- Reminder execution is not slowed down by having many reminders (at least if they are waiting)
