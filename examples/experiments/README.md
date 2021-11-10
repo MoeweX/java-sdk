@@ -36,7 +36,7 @@ Result:
 - Program does not stop properly -> no print-out at the end
 - O(n)
 
-![Exp1](./exp2.png)
+![Exp2](./exp2.png)
 
 DemoActorClient log:
 ```bash
@@ -101,6 +101,10 @@ DemoActorClient log:
 == APP == Done.
 ```
 
+Repeated the experiment (exp2a) later with 5000 actors and a 10 second brake after 2500 actors to study if this has any effect on latency **Stopping does not change anything**
+
+![Exp2a](./exp2a.png)
+
 ## Reminder scalability for deactivated actors that have reminders (exp3)
 
 - Git-commit: 21974a72
@@ -131,7 +135,7 @@ Results:
 - Actors that do not have reminders do not slow us down
 - Each actor with a reminder makes it more expensive to add new actors. Possible reasons
     - Caused by all reminders in same database key -> using partitioning would fix this
-    - Caused by Dapr overloaded -> small brake while adding in exp2 would fix this
+    - Caused by Dapr overloaded -> small brake while adding in exp2 would fix this, does not (exp2a)
 - Number of (waiting) reminders in database does not impact reminder execution
 
 If partitioning helps for writes, this means:

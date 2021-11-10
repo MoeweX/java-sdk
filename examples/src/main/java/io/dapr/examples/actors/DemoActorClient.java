@@ -46,18 +46,33 @@ public class DemoActorClient {
 
       System.out.println("Starting Actors.");
 
-      // create single actor that is continioulsy doing something
+      // create single actor, same as in loop
       long nanos = System.nanoTime();
       ActorId actorId = new ActorId("Actor-0");
       DemoActor actor = builder.build(actorId);
       actor.doSomething();
-      actor.registerReminder(1);
+      actor.registerReminder(5000);
       long time = System.nanoTime() - nanos;
 
       writer.write(actorId + ";" + time + "\n");
 
-      // Creates multiple actors.
-      for (int i = 1; i < NUM_ACTORS; i++) {
+      // Creates first batch of actors.
+      for (int i = 1; i < NUM_ACTORS / 2; i++) {
+        nanos = System.nanoTime();
+        actorId = new ActorId("Actor-" + i);
+        actor = builder.build(actorId);
+        actor.doSomething();
+        actor.registerReminder(5000);
+        time = System.nanoTime() - nanos;
+
+        writer.write(actorId + ";" + time + "\n");
+      }
+
+      System.out.println("Sleeping for 10 seconds");
+      Thread.sleep(10000);
+
+      // Creates second batch of actors.
+      for (int i = NUM_ACTORS / 2; i < NUM_ACTORS; i++) {
         nanos = System.nanoTime();
         actorId = new ActorId("Actor-" + i);
         actor = builder.build(actorId);
