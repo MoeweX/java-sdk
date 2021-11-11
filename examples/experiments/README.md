@@ -7,7 +7,7 @@ We do not benchmark how many actors can be actively processing / being reminded 
 
 - Git commit: c934bc86 (addReminder must be commented)
 
-Motivation: Check if the overhead of starting actors is linear
+Motivation: Check the overhead of starting actors without reminders. We need this to understand later the effects of reminders since only they require persistence.
 
 Setup:
 
@@ -810,3 +810,5 @@ All findings valid for self-hosted, redis. Based on one and two app runtimes.
 - Reminder creation is slowed down by having many reminders, even if they are waiting O(n). Having more partitions slightly helps, having to many slows down again. Having more app runtimes slows down again (constant for number of partitions at two runtimes).
 - Having more partitions increases number of distributed tracing errors when adding many reminders
 - Reminder execution is not slowed down by having many reminders (at least if they are waiting)
+
+Partitions: since they only marginal improve (degree can only be determined by extensive benchmarking) and having too many is bad, we should keep the number to a minimum (configure so that cosmosdb does not return requestSizeToLarge)
