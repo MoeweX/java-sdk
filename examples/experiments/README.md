@@ -278,3 +278,13 @@ All findings valid for self-hosted, redis. Based on one and two app runtimes.
 - Reminder execution is not slowed down by having many reminders (at least if they are waiting)
 
 Partitions: since they only marginal improve (degree can only be determined by extensive benchmarking) and having too many is bad, we should keep the number to a minimum (configure so that cosmosdb does not return requestSizeToLarge)
+
+## Experiment 7, 7a, 7b
+
+Motivation: Evaluate for dapr 1.5.0, repeat experiment 6 and check whether any changes affect Dapr
+
+exp7: 50 partition, two runtimes 26.122602036
+exp7a: 100 partition, two runtimes 28.289170094800003
+exp7b: 200 partition, two runtimes 36.776049839
+
+-> Trend remains the same

@@ -49,7 +49,7 @@ public class DemoActorService {
     // Determines whether to drain API calls for actors instances being balanced.
     ActorRuntime.getInstance().getConfig().setDrainBalancedActors(true);
     // Set number of reminder partitions
-    ActorRuntime.getInstance().getConfig().setRemindersStoragePartitions(50);
+    ActorRuntime.getInstance().getConfig().setRemindersStoragePartitions(200);
 
     // Register the Actor class.
     ActorRuntime.getInstance().registerActor(DemoActorImpl.class);
