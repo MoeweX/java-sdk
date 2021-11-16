@@ -27,60 +27,20 @@ public class DemoActorClient {
 
   /**
    * The main method.
+   *
    * @param args Input arguments (unused).
    * @throws InterruptedException If program has been interrupted.
    */
   public static void main(String[] args) throws InterruptedException {
     try (ActorClient client = new ActorClient()) {
       ActorProxyBuilder<DemoActor> builder = new ActorProxyBuilder(DemoActor.class, client);
-      List<Thread> threads = new ArrayList<>(NUM_ACTORS);
 
-      // Creates multiple actors.
-      for (int i = 0; i < NUM_ACTORS; i++) {
-        ActorId actorId = ActorId.createRandom();
-        DemoActor actor = builder.build(actorId);
+      ActorId actorId = ActorId.createRandom();
+      DemoActor actor = builder.build(actorId);
 
-        // Start a thread per actor.
-        Thread thread = new Thread(() -> callActorForever(actorId.toString(), actor));
-        thread.start();
-        threads.add(thread);
-      }
-
-      // Waits for threads to finish.
-      for (Thread thread : threads) {
-        thread.join();
-      }
+      actor.registerReminder();
     }
-
     System.out.println("Done.");
   }
 
-  /**
-   * Makes multiple method calls into actor until interrupted.
-   * @param actorId Actor's identifier.
-   * @param actor Actor to be invoked.
-   */
-  private static final void callActorForever(String actorId, DemoActor actor) {
-    // First, register reminder.
-    actor.registerReminder();
-
-    // Now, we run until thread is interrupted.
-    while (!Thread.currentThread().isInterrupted()) {
-      // Invoke actor method to increment counter by 1, then build message.
-      int messageNumber = actor.incrementAndGet(1).block();
-      String message = String.format("Actor %s said message #%d", actorId, messageNumber);
-
-      // Invoke the 'say' method in actor.
-      String result = actor.say(message);
-      System.out.println(String.format("Actor %s got a reply: %s", actorId, result));
-
-      try {
-        // Waits for up to 1 second.
-        Thread.sleep((long) (1000 * Math.random()));
-      } catch (InterruptedException e) {
-        // We have been interrupted, so we set the interrupted flag to exit gracefully.
-        Thread.currentThread().interrupt();
-      }
-    }
-  }
 }

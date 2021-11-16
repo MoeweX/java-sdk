@@ -16,7 +16,11 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.Calendar;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Implementation of the DemoActor for the server side.
@@ -35,13 +39,6 @@ public class DemoActorImpl extends AbstractActor implements DemoActor, Remindabl
    */
   public DemoActorImpl(ActorRuntimeContext runtimeContext, ActorId id) {
     super(runtimeContext, id);
-
-    super.registerActorTimer(
-        null,
-        "clock",
-        "ping!",
-        Duration.ofSeconds(2),
-        Duration.ofSeconds(1)).block();
   }
 
   /**
@@ -53,7 +50,7 @@ public class DemoActorImpl extends AbstractActor implements DemoActor, Remindabl
         "myremind",
         (int) (Integer.MAX_VALUE * Math.random()),
         Duration.ofSeconds(5),
-        Duration.ofSeconds(2)).block();
+        Duration.ofSeconds(1)).block();
   }
 
   /**
@@ -136,15 +133,40 @@ public class DemoActorImpl extends AbstractActor implements DemoActor, Remindabl
    */
   @Override
   public Mono<Void> receiveReminder(String reminderName, Integer state, Duration dueTime, Duration period) {
+    try {
+      Thread.sleep(10);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
     return Mono.fromRunnable(() -> {
       Calendar utcNow = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-      String utcNowAsString = DATE_FORMAT.format(utcNow.getTime());
+      System.out.println("Actor reminded: " + utcNow.get((Calendar.MINUTE)) + ":" + utcNow.get((Calendar.SECOND)) + "," + utcNow.get(Calendar.MILLISECOND));
 
-      String message = String.format("Server reminded actor %s of: %s for %d @ %s",
-          this.getId(), reminderName, state, utcNowAsString);
+      primeNumbersBruteForce(1000000);
 
-      // Handles the request by printing message.
-      System.out.println(message);
+      utcNow = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+      System.out.println("Actor finished: " + utcNow.get((Calendar.MINUTE)) + ":" + utcNow.get((Calendar.SECOND)) + "," + utcNow.get(Calendar.MILLISECOND));
     });
+  }
+
+  public static List<Integer> primeNumbersBruteForce(int n) {
+    List<Integer> primeNumbers = new LinkedList<>();
+    if (n >= 2) {
+      primeNumbers.add(2);
+    }
+    for (int i = 3; i <= n; i += 2) {
+      if (isPrimeBruteForce(i)) {
+        primeNumbers.add(i);
+      }
+    }
+    return primeNumbers;
+  }
+  private static boolean isPrimeBruteForce(int number) {
+    for (int i = 2; i*i <= number; i++) {
+      if (number % i == 0) {
+        return false;
+      }
+    }
+    return true;
   }
 }
