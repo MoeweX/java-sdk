@@ -15,7 +15,7 @@ import reactor.core.publisher.Mono;
 @ActorType(name = "DemoActor")
 public interface DemoActor {
 
-  void registerReminder();
+  void registerReminder(String name);
 
   @ActorMethod(name = "echo_message")
   String say(String something);

@@ -45,12 +45,12 @@ public class DemoActorImpl extends AbstractActor implements DemoActor, Remindabl
    * Registers a reminder.
    */
   @Override
-  public void registerReminder() {
+  public void registerReminder(String name) {
     super.registerReminder(
-        "myremind",
-        (int) (Integer.MAX_VALUE * Math.random()),
-        Duration.ofSeconds(5),
-        Duration.ofSeconds(1)).block();
+      name,
+      (int) (Integer.MAX_VALUE * Math.random()),
+      Duration.ofSeconds(10),
+      Duration.ofMinutes(50)).block();
   }
 
   /**
@@ -139,10 +139,14 @@ public class DemoActorImpl extends AbstractActor implements DemoActor, Remindabl
       e.printStackTrace();
     }
     return Mono.fromRunnable(() -> {
+      if (reminderName.equals("silent")) {
+        return;
+      }
+
       Calendar utcNow = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
       System.out.println("Actor reminded: " + utcNow.get((Calendar.MINUTE)) + ":" + utcNow.get((Calendar.SECOND)) + "," + utcNow.get(Calendar.MILLISECOND));
 
-      primeNumbersBruteForce(1000000);
+      primeNumbersBruteForce(10000000);
 
       utcNow = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
       System.out.println("Actor finished: " + utcNow.get((Calendar.MINUTE)) + ":" + utcNow.get((Calendar.SECOND)) + "," + utcNow.get(Calendar.MILLISECOND));

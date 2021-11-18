@@ -35,10 +35,15 @@ public class DemoActorClient {
     try (ActorClient client = new ActorClient()) {
       ActorProxyBuilder<DemoActor> builder = new ActorProxyBuilder(DemoActor.class, client);
 
-      ActorId actorId = ActorId.createRandom();
+      ActorId actorId = new ActorId("Speaking-Actor");
       DemoActor actor = builder.build(actorId);
+      actor.registerReminder("myremind");
 
-      actor.registerReminder();
+      for (int i = 1; i < 100; i++) {
+        actorId = new ActorId("Silent-" + i);
+        actor = builder.build(actorId);
+        actor.registerReminder("silent");
+      }
     }
     System.out.println("Done.");
   }

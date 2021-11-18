@@ -41,11 +41,11 @@ public class DemoActorService {
     final int port = Integer.parseInt(cmd.getOptionValue("port"));
 
     // Idle timeout until actor instance is deactivated.
-    ActorRuntime.getInstance().getConfig().setActorIdleTimeout(Duration.ofSeconds(30));
+    ActorRuntime.getInstance().getConfig().setActorIdleTimeout(Duration.ofSeconds(10));
     // How often actor instances are scanned for deactivation and balance.
-    ActorRuntime.getInstance().getConfig().setActorScanInterval(Duration.ofSeconds(10));
+    ActorRuntime.getInstance().getConfig().setActorScanInterval(Duration.ofSeconds(5));
     // How long to wait until for draining an ongoing API call for an actor instance.
-    ActorRuntime.getInstance().getConfig().setDrainOngoingCallTimeout(Duration.ofSeconds(10));
+    ActorRuntime.getInstance().getConfig().setDrainOngoingCallTimeout(Duration.ofSeconds(5));
     // Determines whether to drain API calls for actors instances being balanced.
     ActorRuntime.getInstance().getConfig().setDrainBalancedActors(true);
 
